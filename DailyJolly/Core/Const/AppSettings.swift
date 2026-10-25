@@ -25,7 +25,7 @@ final class AppSettings {
 
     var recipePin: String? {
         didSet {
-            UserDefaults.standard.set(recipePin, forKey: "recipe_pin")
+            KeychainStore.set(recipePin, forKey: "recipe_pin")
         }
     }
 
@@ -61,7 +61,12 @@ final class AppSettings {
         self.language = AppLanguage(rawValue: langRaw) ?? .en
 
         self.isRecipeEditLocked = UserDefaults.standard.bool(forKey: "is_recipe_edit_locked")
-        self.recipePin = UserDefaults.standard.string(forKey: "recipe_pin")
+        // Migrate the PIN out of plaintext UserDefaults (older installs)
+        if let legacyPin = UserDefaults.standard.string(forKey: "recipe_pin") {
+            KeychainStore.set(legacyPin, forKey: "recipe_pin")
+            UserDefaults.standard.removeObject(forKey: "recipe_pin")
+        }
+        self.recipePin = KeychainStore.string(forKey: "recipe_pin")
 
         let interval = UserDefaults.standard.double(forKey: "last_backup_date")
         self.lastBackupDate = interval > 0 ? Date(timeIntervalSince1970: interval) : nil

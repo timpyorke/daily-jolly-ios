@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		39C3DB27F0D531E981A0FEE7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CCE7EE460D0177F3784849C0 /* Foundation.framework */; };
 		A5560EE12FC1A4D30025A7D8 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A5560EE02FC1A4D30025A7D8 /* GoogleSignIn */; };
+		A5560F042FC1B0000025A7D8 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A5560F022FC1B0000025A7D8 /* FirebaseCore */; };
+		A5560F052FC1B0000025A7D8 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = A5560F032FC1B0000025A7D8 /* FirebaseAnalytics */; };
 		C1EE74A9DBF68FBF6F070398 /* DailyJollyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3A92396040380E635EE364 /* DailyJollyTests.swift */; };
 /* End PBXBuildFile section */
 
@@ -62,6 +64,8 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				A5560EE12FC1A4D30025A7D8 /* GoogleSignIn in Frameworks */,
+				A5560F042FC1B0000025A7D8 /* FirebaseCore in Frameworks */,
+				A5560F052FC1B0000025A7D8 /* FirebaseAnalytics in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -130,6 +134,8 @@
 			name = DailyJolly;
 			packageProductDependencies = (
 				A5560EE02FC1A4D30025A7D8 /* GoogleSignIn */,
+				A5560F022FC1B0000025A7D8 /* FirebaseCore */,
+				A5560F032FC1B0000025A7D8 /* FirebaseAnalytics */,
 			);
 			productName = DailyJolly;
 			productReference = 89EF155B2F21185000493825 /* DailyJolly.app */;
@@ -180,6 +186,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A5560E192FC1A1DF0025A7D8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				A5560F012FC1B0000025A7D8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 90;
 			productRefGroup = 89EF155C2F21185000493825 /* Products */;
@@ -402,7 +409,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codenour.anchan;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -439,7 +446,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.codenour.anchan;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "$(CI_PROFILE_NAME)";
@@ -491,6 +498,14 @@
 				minimumVersion = 9.1.0;
 			};
 		};
+		A5560F012FC1B0000025A7D8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -498,6 +513,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A5560E192FC1A1DF0025A7D8 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
+		};
+		A5560F022FC1B0000025A7D8 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A5560F012FC1B0000025A7D8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		A5560F032FC1B0000025A7D8 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A5560F012FC1B0000025A7D8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

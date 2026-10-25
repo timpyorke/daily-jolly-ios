@@ -3,6 +3,7 @@ import SwiftData
 import PhotosUI
 
 struct ManufacturingCompletedView: View {
+    @Environment(\.displayScale) private var displayScale
     let manufacturing: ManufacturingEntity
     let viewModel: ManufacturingViewModel
     @Binding var previewImage: Data?
@@ -68,7 +69,7 @@ struct ManufacturingCompletedView: View {
                             let finalImages = manufacturing.images.filter { $0.stepIndex == nil }
                             
                             ForEach(finalImages.sorted(by: { $0.createdAt < $1.createdAt })) { imageEntity in
-                                if let uiImage = UIImage(data: imageEntity.imageData) {
+                                if let uiImage = ImageDownsampler.image(from: imageEntity.imageData, maxPixelSize: 150, scale: displayScale) {
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .scaledToFill()

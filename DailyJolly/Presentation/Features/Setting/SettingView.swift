@@ -34,11 +34,11 @@ struct SettingView: View {
             case .success(let urls):
                 if let url = urls.first {
                     Task {
-                        // Start accessing security-scoped resource
-                        if url.startAccessingSecurityScopedResource() {
-                            viewModel.importInventory(from: url, modelContext: modelContext)
-                            url.stopAccessingSecurityScopedResource()
-                        }
+                        // Files already inside the sandbox return false here but are
+                        // still readable, so import either way and let errors surface
+                        let isAccessing = url.startAccessingSecurityScopedResource()
+                        defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+                        viewModel.importInventory(from: url, modelContext: modelContext)
                     }
                 }
             case .failure(let error):
@@ -55,10 +55,11 @@ struct SettingView: View {
             case .success(let urls):
                 if let url = urls.first {
                     Task {
-                        if url.startAccessingSecurityScopedResource() {
-                            viewModel.importRecipes(from: url, modelContext: modelContext)
-                            url.stopAccessingSecurityScopedResource()
-                        }
+                        // Files already inside the sandbox return false here but are
+                        // still readable, so import either way and let errors surface
+                        let isAccessing = url.startAccessingSecurityScopedResource()
+                        defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+                        viewModel.importRecipes(from: url, modelContext: modelContext)
                     }
                 }
             case .failure(let error):

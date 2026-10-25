@@ -79,6 +79,11 @@ final class RecipeEntity {
         batchSize * batches
     }
 
+    /// True while any batch of this recipe is still being produced
+    var hasInProgressManufacturing: Bool {
+        manufacturingRecords.contains { $0.status == .inProgress }
+    }
+
     /// Check if all ingredients have enough stock
     var hasEnoughInventory: Bool {
         ingredients.allSatisfy { $0.hasEnoughStock }

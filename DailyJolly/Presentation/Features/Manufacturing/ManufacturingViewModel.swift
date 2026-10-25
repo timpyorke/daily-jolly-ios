@@ -20,6 +20,7 @@ final class ManufacturingViewModel {
     // MARK: - Dependencies
 
     private var repository: ManufacturingRepository?
+    private var pendingNoteSave: Task<Void, Never>?
 
     // MARK: - Setup
 
@@ -79,9 +80,16 @@ final class ManufacturingViewModel {
     }
 
     func updateStepNote(at index: Int, note: String) {
-        guard let manufacturing, let repository else { return }
+        guard let manufacturing else { return }
         manufacturing.setStepNote(at: index, note: note)
-        _ = repository.update()
+
+        // Called on every keystroke; batch the disk writes
+        pendingNoteSave?.cancel()
+        pendingNoteSave = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            _ = self?.repository?.update()
+        }
     }
 
     func startStep(at index: Int) {
@@ -110,7 +118,9 @@ final class ManufacturingViewModel {
 
     func addImageData(_ data: Data, stepIndex: Int? = nil) {
         guard let manufacturing, let repository else { return }
-        manufacturing.addImage(data, stepIndex: stepIndex)
+        // Library/camera photos can be 10+ MB; store a bounded JPEG instead
+        let storedData = ImageDownsampler.storageJPEG(from: data) ?? data
+        manufacturing.addImage(storedData, stepIndex: stepIndex)
         _ = repository.update()
     }
 

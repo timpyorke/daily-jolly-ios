@@ -74,25 +74,18 @@ final class RecipeViewModel {
         }
     }
 
-    func deleteRecipes(at offsets: IndexSet) {
+    func deleteRecipe(_ recipe: RecipeEntity) {
         guard let repository else { return }
 
         isDeleting = true
         defer { isDeleting = false }
 
-        let itemsToDelete = offsets.map { filteredRecipes[$0] }
-        
-        for recipe in itemsToDelete {
-            switch repository.delete(recipe) {
-            case .success:
-                recipes.removeAll { $0.persistentModelID == recipe.persistentModelID }
-            case .failure(let error):
-                handleError(error)
-                return
-            }
+        switch repository.delete(recipe) {
+        case .success:
+            loadRecipes()
+        case .failure(let error):
+            handleError(error)
         }
-        // Final refresh to ensure alignment
-        loadRecipes()
     }
 
     // MARK: - Error Handling

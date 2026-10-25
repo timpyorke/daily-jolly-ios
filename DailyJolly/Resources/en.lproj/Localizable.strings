@@ -237,3 +237,8 @@
 "Backup Restored" = "Backup Restored";
 "Your data has been successfully restored from the backup." = "Your data has been successfully restored from the backup.";
 "Disconnect Google Account" = "Disconnect Google Account";
+
+// Data safety
+"This recipe has a batch in progress. Complete or cancel it first." = "This recipe has a batch in progress. Complete or cancel it first.";
+"Steps can't be changed while a batch is in progress. Complete or cancel it first." = "Steps can't be changed while a batch is in progress. Complete or cancel it first.";
+"Unsupported file encoding. Please save the CSV as UTF-8." = "Unsupported file encoding. Please save the CSV as UTF-8.";

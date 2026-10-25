@@ -292,3 +292,8 @@
 "Backup Restored" = "กู้คืนข้อมูลสำเร็จ";
 "Your data has been successfully restored from the backup." = "กู้คืนข้อมูลจากไฟล์สำรองเรียบร้อยแล้ว";
 "Disconnect Google Account" = "ยกเลิกการเชื่อมต่อบัญชี Google";
+
+// Data safety
+"This recipe has a batch in progress. Complete or cancel it first." = "สูตรนี้มีการผลิตที่กำลังดำเนินอยู่ กรุณาทำให้เสร็จหรือยกเลิกก่อน";
+"Steps can't be changed while a batch is in progress. Complete or cancel it first." = "ไม่สามารถแก้ไขขั้นตอนได้ระหว่างที่มีการผลิตกำลังดำเนินอยู่ กรุณาทำให้เสร็จหรือยกเลิกก่อน";
+"Unsupported file encoding. Please save the CSV as UTF-8." = "ไม่รองรับการเข้ารหัสของไฟล์นี้ กรุณาบันทึกไฟล์ CSV เป็น UTF-8";

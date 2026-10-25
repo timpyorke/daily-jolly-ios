@@ -241,8 +241,10 @@ struct StepPhotoThumbnail: View {
     let onDelete: () -> Void
     let showDelete: Bool
 
+    @Environment(\.displayScale) private var displayScale
+
     var body: some View {
-        if let uiImage = UIImage(data: imageEntity.imageData) {
+        if let uiImage = ImageDownsampler.image(from: imageEntity.imageData, maxPixelSize: isCompact ? 60 : 100, scale: displayScale) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
