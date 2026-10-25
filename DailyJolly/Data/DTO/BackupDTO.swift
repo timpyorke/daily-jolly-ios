@@ -94,6 +94,8 @@ struct ManufacturingDTO: Codable {
     let recipeBackupId: String
     let stepLogs: [StepLogDTO]
     let measurements: [MeasurementLogDTO]
+    // Optional so backups made before photos were included still decode
+    let images: [ManufacturingImageDTO]?
 }
 
 struct StepLogDTO: Codable {
@@ -102,6 +104,13 @@ struct StepLogDTO: Codable {
     let note: String
     let startedAt: Date?
     let completedAt: Date?
+    let createdAt: Date
+}
+
+struct ManufacturingImageDTO: Codable {
+    let backupId: String
+    let imageData: Data
+    let stepIndex: Int?
     let createdAt: Date
 }
 

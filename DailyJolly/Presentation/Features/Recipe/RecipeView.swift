@@ -8,6 +8,7 @@ struct RecipeView: View {
     let stackRouter: StackRouter
     @State private var viewModel = RecipeViewModel()
     @State private var showPinVerify = false
+    @State private var recipePendingDelete: RecipeEntity?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,6 +46,27 @@ struct RecipeView: View {
         }
         .onAppear {
             viewModel.setup(modelContext: modelContext)
+        }
+        .alert(
+            String(localized: "Delete Recipe"),
+            isPresented: Binding(
+                get: { recipePendingDelete != nil },
+                set: { if !$0 { recipePendingDelete = nil } }
+            ),
+            presenting: recipePendingDelete
+        ) { recipe in
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Delete"), role: .destructive) {
+                // Dismiss before deleting so the alert never re-renders a deleted model
+                recipePendingDelete = nil
+                viewModel.deleteRecipe(recipe)
+            }
+        } message: { recipe in
+            if recipe.isAlive && !recipe.manufacturingRecords.isEmpty {
+                Text(String(localized: "This recipe has \(recipe.manufacturingRecords.count) manufacturing records. Deleting it will also delete all associated history. Are you sure?"))
+            } else {
+                Text(String(localized: "Are you sure you want to delete this recipe?"))
+            }
         }
         .sheet(isPresented: $showPinVerify) {
             PinEntryView(mode: .verify) { _ in
@@ -105,12 +127,9 @@ struct RecipeView: View {
                 }
             }
             .onDelete { offsets in
-                if !AppSettings.shared.isRecipeEditLocked {
-                    let itemsToDelete = offsets.map { filteredRecipes[$0] }
-                    for recipe in itemsToDelete {
-                        modelContext.delete(recipe)
-                    }
-                    try? modelContext.save()
+                // Confirm first: deleting a recipe also deletes its manufacturing history
+                if !AppSettings.shared.isRecipeEditLocked, let index = offsets.first {
+                    recipePendingDelete = filteredRecipes[index]
                 }
             }
         }

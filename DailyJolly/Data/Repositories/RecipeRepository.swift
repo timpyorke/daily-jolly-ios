@@ -10,7 +10,7 @@ protocol RecipeRepositoryProtocol {
     func fetchByCategory(_ category: String) -> Result<[RecipeEntity], AppError>
     func create(_ recipe: RecipeEntity) -> Result<Void, AppError>
     func delete(_ recipe: RecipeEntity) -> Result<Void, AppError>
-    func updateBasicInfo(_ recipe: RecipeEntity, name: String, note: String, category: String?, batchSize: Int, batchUnit: String) -> Result<Void, AppError>
+    func updateBasicInfo(_ recipe: RecipeEntity, name: String, note: String, category: String?, batchSize: Int, batchUnit: String, templateType: GellingAgentType?) -> Result<Void, AppError>
     func rebuildRelationships(_ recipe: RecipeEntity, steps: [RecipeStepInput], ingredients: [RecipeIngredientInput]) -> Result<Void, AppError>
     func duplicate(_ recipe: RecipeEntity) -> Result<RecipeEntity, AppError>
 }
@@ -110,36 +110,49 @@ final class RecipeRepository: RecipeRepositoryProtocol {
     }
 
     func delete(_ recipe: RecipeEntity) -> Result<Void, AppError> {
+        // Deleting cascades to manufacturing records; never take down a batch
+        // that is still being produced.
+        if recipe.hasInProgressManufacturing {
+            return .failure(.validationError(String(localized: "This recipe has a batch in progress. Complete or cancel it first.")))
+        }
         modelContext.delete(recipe)
         return save()
     }
 
     // MARK: - Update
 
-    func updateBasicInfo(_ recipe: RecipeEntity, name: String, note: String, category: String?, batchSize: Int, batchUnit: String) -> Result<Void, AppError> {
+    func updateBasicInfo(_ recipe: RecipeEntity, name: String, note: String, category: String?, batchSize: Int, batchUnit: String, templateType: GellingAgentType?) -> Result<Void, AppError> {
         recipe.name = name.trimmingCharacters(in: .whitespaces)
         recipe.note = note
         recipe.category = category?.isEmpty == false ? category?.trimmingCharacters(in: .whitespaces) : nil
         recipe.batchSize = batchSize
         recipe.batchUnit = batchUnit.isEmpty ? "pcs" : batchUnit.trimmingCharacters(in: .whitespaces)
+        recipe.templateType = templateType
         return save()
     }
 
     func rebuildRelationships(_ recipe: RecipeEntity, steps: [RecipeStepInput], ingredients: [RecipeIngredientInput]) -> Result<Void, AppError> {
         // --- 1. Update Steps ---
-        // For simplicity while ensuring stability, we'll keep the logic but 
-        // ensure we only delete what's necessary if we had stable IDs.
-        // Since RecipeStepInput doesn't have IDs, we have to recreate or match by order.
-        
-        // Remove old steps from context
-        let oldSteps = recipe.steps
-        for step in oldSteps {
-            modelContext.delete(step)
+        // RecipeStepInput has no IDs, so changed steps are recreated by order.
+        // Manufacturing records reference steps by index, so only rebuild when
+        // the steps actually changed (this also keeps dependencies/backupIds),
+        // and never while a batch is mid-production.
+        let stepsChanged = !Self.stepsMatch(recipe.sortedSteps, steps)
+        if stepsChanged && recipe.hasInProgressManufacturing {
+            return .failure(.validationError(String(localized: "Steps can't be changed while a batch is in progress. Complete or cancel it first.")))
         }
-        recipe.steps.removeAll()
+
+        if stepsChanged {
+            // Remove old steps from context
+            let oldSteps = recipe.steps
+            for step in oldSteps {
+                modelContext.delete(step)
+            }
+            recipe.steps.removeAll()
+        }
 
         // Add new steps
-        for (index, stepInput) in steps.enumerated() {
+        for (index, stepInput) in steps.enumerated() where stepsChanged {
             let step = RecipeStepEntity(
                 title: stepInput.title,
                 note: stepInput.note,
@@ -193,6 +206,19 @@ final class RecipeRepository: RecipeRepositoryProtocol {
     }
 
     // MARK: - Private
+
+    private static func stepsMatch(_ existing: [RecipeStepEntity], _ inputs: [RecipeStepInput]) -> Bool {
+        guard existing.count == inputs.count else { return false }
+        return zip(existing, inputs).allSatisfy { step, input in
+            step.title == input.title
+                && step.note == input.note
+                && step.time == input.time
+                // RecipeEditViewModel loads isTimerRequired as `isTimerRequired || time > 0`
+                && (step.isTimerRequired || step.time > 0) == input.isTimerRequired
+                && step.requiredMeasurements == input.requiredMeasurements
+                && step.lineIdentifier == input.lineIdentifier
+        }
+    }
 
     private func save() -> Result<Void, AppError> {
         do {

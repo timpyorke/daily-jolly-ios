@@ -108,42 +108,43 @@ final class RecipeEditViewModel {
         defer { isSaving = false }
 
         if let recipe {
-            // Update existing recipe
+            // Rebuild relationships first: it can refuse the edit (batch in
+            // progress), and nothing should be saved in that case.
+            let recipeSteps = steps.map { step in
+                RecipeStepInput(
+                    title: step.title,
+                    note: step.note,
+                    time: step.time,
+                    isTimerRequired: step.isTimerRequired,
+                    requiredMeasurements: step.requiredMeasurements,
+                    lineIdentifier: step.lineIdentifier
+                )
+            }
+            let recipeIngredients = ingredients.map { ingredient in
+                RecipeIngredientInput(
+                    inventoryId: ingredient.inventoryId,
+                    quantity: ingredient.quantity,
+                    unitSymbol: ingredient.unitSymbol,
+                    note: ingredient.note.isEmpty ? nil : ingredient.note
+                )
+            }
+
+            if case .failure(let error) = repository.rebuildRelationships(recipe, steps: recipeSteps, ingredients: recipeIngredients) {
+                handleError(error)
+                return
+            }
+
             switch repository.updateBasicInfo(
                 recipe,
                 name: name,
                 note: note,
                 category: category.isEmpty ? nil : category,
                 batchSize: batchSize,
-                batchUnit: batchUnit
+                batchUnit: batchUnit,
+                templateType: templateType
             ) {
             case .success:
-                // Rebuild relationships
-                let recipeSteps = steps.map { step in
-                    RecipeStepInput(
-                        title: step.title,
-                        note: step.note,
-                        time: step.time,
-                        isTimerRequired: step.isTimerRequired,
-                        requiredMeasurements: step.requiredMeasurements,
-                        lineIdentifier: step.lineIdentifier
-                    )
-                }
-                let recipeIngredients = ingredients.map { ingredient in
-                    RecipeIngredientInput(
-                        inventoryId: ingredient.inventoryId,
-                        quantity: ingredient.quantity,
-                        unitSymbol: ingredient.unitSymbol,
-                        note: ingredient.note.isEmpty ? nil : ingredient.note
-                    )
-                }
-
-                switch repository.rebuildRelationships(recipe, steps: recipeSteps, ingredients: recipeIngredients) {
-                case .success:
-                    onComplete()
-                case .failure(let error):
-                    handleError(error)
-                }
+                onComplete()
             case .failure(let error):
                 handleError(error)
             }

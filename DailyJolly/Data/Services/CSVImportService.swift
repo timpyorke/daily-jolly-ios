@@ -10,7 +10,7 @@ final class CSVImportService {
     /// Import inventory from CSV
     func importInventory(from url: URL, modelContext: ModelContext) -> Result<(Int, Int), AppError> {
         do {
-            let data = try String(contentsOf: url, encoding: .utf8)
+            let data = try CSVEngine.shared.readText(from: url)
             let rows = CSVEngine.shared.parse(data)
             
             guard rows.count > 1 else { return .success((0, 0)) }
@@ -76,6 +76,8 @@ final class CSVImportService {
             return .success((importCount, skippedCount))
             
         } catch {
+            // Don't leave half an import pending for autosave
+            modelContext.rollback()
             return .failure(.databaseError("Import failed: \(error.localizedDescription)"))
         }
     }
@@ -83,7 +85,7 @@ final class CSVImportService {
     /// Import recipes from CSV (Basic info only)
     func importRecipes(from url: URL, modelContext: ModelContext) -> Result<(Int, Int), AppError> {
         do {
-            let data = try String(contentsOf: url, encoding: .utf8)
+            let data = try CSVEngine.shared.readText(from: url)
             let rows = CSVEngine.shared.parse(data)
             
             guard rows.count > 1 else { return .success((0, 0)) }
@@ -132,6 +134,8 @@ final class CSVImportService {
             return .success((importCount, skippedCount))
             
         } catch {
+            // Don't leave half an import pending for autosave
+            modelContext.rollback()
             return .failure(.databaseError("Import failed: \(error.localizedDescription)"))
         }
     }

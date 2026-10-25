@@ -4,6 +4,7 @@ import SwiftData
 struct ManufacturingDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(StackRouter.self) private var stackRouter
+    @Environment(\.displayScale) private var displayScale
 
     let id: PersistentIdentifier
 
@@ -119,7 +120,7 @@ struct ManufacturingDetailView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 12) {
                                 ForEach(manufacturing.images.sorted(by: { $0.createdAt < $1.createdAt })) { imageEntity in
-                                    if let uiImage = UIImage(data: imageEntity.imageData) {
+                                    if let uiImage = ImageDownsampler.image(from: imageEntity.imageData, maxPixelSize: 200, scale: displayScale) {
                                         Image(uiImage: uiImage)
                                             .resizable()
                                             .scaledToFill()

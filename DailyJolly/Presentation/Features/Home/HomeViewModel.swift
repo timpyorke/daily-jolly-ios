@@ -8,9 +8,17 @@ final class HomeViewModel {
 
     // MARK: - State
 
-    private(set) var activeManufacturing: [ManufacturingEntity] = []
-    private(set) var completedManufacturing: [ManufacturingEntity] = []
-    private(set) var allInventory: [InventoryEntity] = []
+    // Home stays alive in the TabView while other screens delete records
+    // (recipe delete cascade, clear all data, backup restore). Rendering a
+    // deleted model crashes SwiftData, so the public accessors drop any model
+    // that has been detached from its context.
+    private var loadedActiveManufacturing: [ManufacturingEntity] = []
+    private var loadedCompletedManufacturing: [ManufacturingEntity] = []
+    private var loadedInventory: [InventoryEntity] = []
+
+    var activeManufacturing: [ManufacturingEntity] { loadedActiveManufacturing.filter(\.isAlive) }
+    var completedManufacturing: [ManufacturingEntity] { loadedCompletedManufacturing.filter(\.isAlive) }
+    var allInventory: [InventoryEntity] { loadedInventory.filter(\.isAlive) }
     var selectedRecipe: RecipeEntity?
 
     // MARK: - UI State
@@ -90,11 +98,11 @@ final class HomeViewModel {
         if let result = manufacturingRepository?.fetchActive() {
             switch result {
             case .success(let items):
-                activeManufacturing = items
+                loadedActiveManufacturing = items
                 print("[HomeViewModel] ✅ Loaded \(items.count) active manufacturing")
             case .failure(let error):
                 print("[HomeViewModel] ❌ Failed to load active manufacturing: \(error)")
-                activeManufacturing = []
+                loadedActiveManufacturing = []
             }
         }
 
@@ -102,11 +110,11 @@ final class HomeViewModel {
         if let result = manufacturingRepository?.fetchCompleted() {
             switch result {
             case .success(let items):
-                completedManufacturing = items
+                loadedCompletedManufacturing = items
                 print("[HomeViewModel] ✅ Loaded \(items.count) completed manufacturing")
             case .failure(let error):
                 print("[HomeViewModel] ❌ Failed to load completed manufacturing: \(error)")
-                completedManufacturing = []
+                loadedCompletedManufacturing = []
             }
         }
 
@@ -114,11 +122,11 @@ final class HomeViewModel {
         if let result = inventoryRepository?.fetchAll() {
             switch result {
             case .success(let items):
-                allInventory = items
+                loadedInventory = items
                 print("[HomeViewModel] ✅ Loaded \(items.count) inventory items")
             case .failure(let error):
                 print("[HomeViewModel] ❌ Failed to load inventory: \(error)")
-                allInventory = []
+                loadedInventory = []
             }
         }
 
@@ -140,8 +148,11 @@ final class HomeViewModel {
         isSaving = true
         defer { isSaving = false }
 
+        // Include cancelled batches so their numbers are never reused
+        let existingBatches = (try? manufacturingRepository.fetchAll().get())
+            ?? (activeManufacturing + completedManufacturing)
         let batchNumber = ManufacturingEntity.generateBatchNumber(
-            existingBatches: activeManufacturing + completedManufacturing
+            existingBatches: existingBatches
         )
         let manufacturing = ManufacturingEntity(recipe: recipe, batchNumber: batchNumber)
 

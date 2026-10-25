@@ -25,6 +25,7 @@ final class BackupSerializationService {
             if m.backupId.isEmpty { m.backupId = UUID().uuidString }
             for l in m.stepLogs where l.backupId.isEmpty { l.backupId = UUID().uuidString }
             for meas in m.measurements where meas.backupId.isEmpty { meas.backupId = UUID().uuidString }
+            for img in m.images where img.backupId.isEmpty { img.backupId = UUID().uuidString }
         }
 
         try modelContext.save()
@@ -44,8 +45,19 @@ final class BackupSerializationService {
             throw AppError.backupError("Unsupported backup version: \(document.schemaVersion)")
         }
 
-        try clearAll(modelContext: modelContext)
+        // clearAll only marks deletions; if anything below throws, those pending
+        // deletions would otherwise be autosaved later and wipe the user's data.
+        do {
+            try clearAll(modelContext: modelContext)
+            try insertAll(from: document, modelContext: modelContext)
+            try modelContext.save()
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
+    }
 
+    private func insertAll(from document: BackupDocument, modelContext: ModelContext) throws {
         // Pass 1: root entities with no cross-references
         var inventoryMap: [String: InventoryEntity] = [:]
         for dto in document.customUnits {
@@ -72,6 +84,7 @@ final class BackupSerializationService {
 
         // Pass 2: recipes + steps (first shell, then wire dependencies)
         var stepMap: [String: RecipeStepEntity] = [:]
+        var recipeMap: [String: RecipeEntity] = [:]
         for dto in document.recipes {
             let recipe = RecipeEntity(
                 name: dto.name,
@@ -85,6 +98,7 @@ final class BackupSerializationService {
             recipe.templateTypeRawValue = dto.templateTypeRawValue
             recipe.createdAt = dto.createdAt
             modelContext.insert(recipe)
+            recipeMap[dto.backupId] = recipe
 
             // Create steps
             for stepDTO in dto.steps {
@@ -127,18 +141,7 @@ final class BackupSerializationService {
             }
         }
 
-        // Pass 4: build recipe lookup map for manufacturing
-        var recipeMap: [String: RecipeEntity] = [:]
-        for dto in document.recipes {
-            if let entity = stepMap.values.first(where: { $0.recipe?.backupId == dto.backupId })?.recipe {
-                recipeMap[dto.backupId] = entity
-            }
-        }
-        // Also fetch directly inserted recipes
-        let insertedRecipes = try fetchAll(RecipeEntity.self, context: modelContext)
-        for r in insertedRecipes { recipeMap[r.backupId] = r }
-
-        // Pass 5: manufacturing records
+        // Pass 4: manufacturing records
         for dto in document.manufacturing {
             guard let recipe = recipeMap[dto.recipeBackupId] else { continue }
             let m = ManufacturingEntity(
@@ -181,9 +184,18 @@ final class BackupSerializationService {
                 meas.timestamp = measDTO.timestamp
                 m.measurements.append(meas)
             }
-        }
 
-        try modelContext.save()
+            for imageDTO in dto.images ?? [] {
+                let image = ManufacturingImageEntity(
+                    imageData: imageDTO.imageData,
+                    stepIndex: imageDTO.stepIndex,
+                    manufacturing: m
+                )
+                image.backupId = imageDTO.backupId
+                image.createdAt = imageDTO.createdAt
+                m.images.append(image)
+            }
+        }
     }
 
     // MARK: - Helpers
@@ -295,7 +307,8 @@ private extension ManufacturingEntity {
             actualOutput: actualOutput,
             recipeBackupId: recipe.backupId,
             stepLogs: stepLogs.map(\.dto),
-            measurements: measurements.map(\.dto)
+            measurements: measurements.map(\.dto),
+            images: images.map(\.dto)
         )
     }
 }
@@ -308,6 +321,17 @@ private extension ManufacturingStepLogEntity {
             note: note,
             startedAt: startedAt,
             completedAt: completedAt,
+            createdAt: createdAt
+        )
+    }
+}
+
+private extension ManufacturingImageEntity {
+    var dto: ManufacturingImageDTO {
+        ManufacturingImageDTO(
+            backupId: backupId,
+            imageData: imageData,
+            stepIndex: stepIndex,
             createdAt: createdAt
         )
     }

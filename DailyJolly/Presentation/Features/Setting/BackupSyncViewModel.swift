@@ -111,7 +111,7 @@ final class BackupSyncViewModel {
     }
 
     func confirmRestore() {
-        guard let modelContext, let file = selectedBackupForRestore else { return }
+        guard let modelContext, let file = selectedBackupForRestore, !isRestoring else { return }
         isRestoring = true
         Task {
             defer { isRestoring = false }
